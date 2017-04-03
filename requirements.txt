@@ -1,0 +1,6 @@
+# update requirements.txt with a list of all required non-conda libraries e.g. python-common-libs
+# assume all conda libraries are installed
+
+# uncomment the following line if you need to use SNAPSHOT versions of amp libraries (but remove/comment when building production builds)
+
+#protobuf==2.6.1
