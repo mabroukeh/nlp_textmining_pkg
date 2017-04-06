@@ -1,15 +1,19 @@
 """
-Examples wuign the textmining package
+Examples using the textmining package
 Ref:
 [1] https://pypi.python.org/pypi/textmining/1.0
 [2] http://www.christianpeccei.com/textmining/index.html
 
+author: Nizar Mabroukeh
+contact: mabroukeh@yahoo.com
+created: March 30, 2017
 """
 
-import textmining as tm
 import os
 import re
+import pprint
 from root import resources
+import textmining as tm
 
 
 class TxtMining(object):
@@ -27,7 +31,7 @@ class TxtMining(object):
         self.docs[utility] = doc
     """
 
-    def add_doc(self, doc):
+    def add_docs(self, doc):
         """
         Adds a document/corpus to the collection of documents maintained by this class
         :param doc: string representation of a document
@@ -35,12 +39,28 @@ class TxtMining(object):
         """
         self.docs += doc
 
+    def get_docs(self):
+        """
+        getter for docs
+        :return: list
+        """
+        return self.docs
+
     def flush_docs(self):
         """
         clears all docs collection
         :return:
         """
         self.docs = []
+
+    def clean_docs(self):
+        """
+        Remove stopwords and non-letters, then tokenize and stem
+        :return:
+        """
+        self.docs = map(tm.stem,
+                        map(tm.simple_tokenize_remove_stopwords, self.docs)
+                        )
 
     def create_termdocument_matrix(self):
         """
@@ -65,6 +85,22 @@ class TxtMining(object):
         except IOError as err:
             raise
 
+    def remove_common_words(self, words):
+        """
+        Removes a word or list of words that are considered common from all self.docs collection
+        :param words: string or list of strings
+        :return:
+        """
+        # if words is a single word convet it into a list for versatility of application of next lines of code
+        if isinstance(words, str): words = [words]
+        # if words are not stemmed we want to also remove their stemmed version from self.docs, so add them to words
+        """
+        stemmed_words = [tm.stem(word) for word in words]
+        words = words.extend(word for word in stemmed_words if word not in words)
+        """
+        words = words.extend(tm.stem(word) for word in words if tm.stem(word) not in words)
+        # remove words from self.docs
+        self.docs = [filter(lambda word: word not in words, doc) for doc in self.docs]
 
 def get_docs_from_reuters_file(corpus):
     """
@@ -135,7 +171,7 @@ if __name__ == '__main__':
         doc2 = 'John went to the store. The store was closed.'
         doc3 = 'Bob went to the store too.'
 
-        txtmining.add_doc([doc1, doc2, doc3])
+        txtmining.add_docs([doc1, doc2, doc3])
         txtmining.create_termdocument_matrix()
 
         print txtmining.docs
@@ -151,11 +187,31 @@ if __name__ == '__main__':
         docs = get_docs_from_reuters_file(corpus)
         # we want only TITLE and BODY of each news item
         docs = map(retrieve_body, docs)
-        # clean the text we have
-        docs = map(clean_text, docs)  # MAY BE WE CAN DO THIS AFTER txtmining.add_doc bby utilizing the lib in textmining for this purpose
+
+        txtmining.add_docs(docs)
+        # clean, tokenize and stem the text we have
+        txtmining.clean_docs()
+
+        docs = txtmining.get_docs()
+
+        print "Num of docs %d" %len(docs)
+
+        pp = pprint.PrettyPrinter(indent=2)
+        pp.pprint(docs)
+        txtmining.remove_common_words('reuter')
+
+        # THERE SEEMS TO BE AN EMPTY LIST AT THE END THAT NEEDS TO BE REMOVED
+
+        docs = txtmining.get_docs()
+
+        print "Num of docs %d" %len(docs)
+
+        pp = pprint.PrettyPrinter(indent=2)
+        pp.pprint(docs)
+
         exit()
 
-        txtmining.add_doc([retrieve_body(doc) for doc in get_docs_from_reuters_file(corpus)])
+        txtmining.add_docs([retrieve_body(doc) for doc in get_docs_from_reuters_file(corpus)])
 
 
 
@@ -167,7 +223,7 @@ if __name__ == '__main__':
             doc = news_file.read().replace('\n', '')
             print doc
             exit()
-            txtmining.add_doc(doc)
+            txtmining.add_docs(doc)
 
         txtmining.create_termdocument_matrix()
 
