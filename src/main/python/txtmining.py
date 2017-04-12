@@ -14,6 +14,7 @@ import re
 import pprint
 from root import resources
 import textmining as tm
+from wordcloud import  WordCloud
 
 
 class TxtMining(object):
@@ -53,23 +54,31 @@ class TxtMining(object):
         """
         self.docs = []
 
+    def remove_empty_docs(self):
+        def is_empty(doc):  # I love functional programming
+            return not doc
+        self.docs = filter(lambda x: not is_empty(x), self.docs)
+
     def clean_docs(self):
         """
         Remove stopwords and non-letters, then tokenize and stem
         :return:
         """
         self.docs = map(tm.stem,
-                        map(tm.simple_tokenize_remove_stopwords, self.docs)
+                            map(tm.simple_tokenize_remove_stopwords, self.docs)
                         )
 
-    def create_termdocument_matrix(self):
+    def create_termdocument_matrix(self, tokenzied=False):
         """
         creates a term document matrix of the frequencies of each term in each document held in self.docs
         :return:
         """
         self.tdm = tm.TermDocumentMatrix()
         for doc in self.docs:
-            self.tdm.add_doc(doc)
+            if not tokenzied:
+                self.tdm.add_doc(doc)
+            else:
+                self.tdm.add_tokenized_doc(doc)
 
     def get_termdocument_matrix(self, cutoff=2):
         """
@@ -98,7 +107,8 @@ class TxtMining(object):
         stemmed_words = [tm.stem(word) for word in words]
         words = words.extend(word for word in stemmed_words if word not in words)
         """
-        words = words.extend(tm.stem(word) for word in words if tm.stem(word) not in words)
+        words.extend(tm.stem(word) for word in words if tm.stem(word) not in words)
+
         # remove words from self.docs
         self.docs = [filter(lambda word: word not in words, doc) for doc in self.docs]
 
@@ -165,7 +175,6 @@ if __name__ == '__main__':
 
     try:
         txtmining = TxtMining()
-
         # Create some very short sample documents
         doc1 = 'John and Bob are brothers.'
         doc2 = 'John went to the store. The store was closed.'
@@ -189,47 +198,29 @@ if __name__ == '__main__':
         docs = map(retrieve_body, docs)
 
         txtmining.add_docs(docs)
+
         # clean, tokenize and stem the text we have
         txtmining.clean_docs()
 
-        docs = txtmining.get_docs()
+        # some docs will become empty now, remove them
+        txtmining.remove_empty_docs()
 
-        print "Num of docs %d" %len(docs)
-
-        pp = pprint.PrettyPrinter(indent=2)
-        pp.pprint(docs)
+        # remove certain words (one word or list of words you want to remove from docs)
+        # txtmining.remove_common_words(['reuter','spokesman'])
         txtmining.remove_common_words('reuter')
 
-        # THERE SEEMS TO BE AN EMPTY LIST AT THE END THAT NEEDS TO BE REMOVED
-
         docs = txtmining.get_docs()
-
         print "Num of docs %d" %len(docs)
-
         pp = pprint.PrettyPrinter(indent=2)
         pp.pprint(docs)
 
-        exit()
-
-        txtmining.add_docs([retrieve_body(doc) for doc in get_docs_from_reuters_file(corpus)])
-
-
-
-        corpus = resources() + "/feldman-cia-worldfactbook-data.txt"
-        txtmining.flush_docs()
-        # load documents from reuters news
-        for i in xrange(5):
-            news_file = open(resources() + "/reuters21578/reut2-00{num}.sgm".format(num=i), 'r')
-            doc = news_file.read().replace('\n', '')
-            print doc
-            exit()
-            txtmining.add_docs(doc)
-
-        txtmining.create_termdocument_matrix()
+        txtmining.create_termdocument_matrix(tokenzied=True)
 
         # get term document matrix as csv
         filename = os.environ.get('JOB_WORKHOME') + os.sep + "matrix.csv"
         txtmining.get_termdocument_matrix_as_csv(filename)
+
+        # now do word cloud
 
 
 
