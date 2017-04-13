@@ -13,6 +13,7 @@ import os
 import re
 import pprint
 from root import resources
+from utils.common import flatmap
 import textmining as tm
 from wordcloud import  WordCloud
 
@@ -112,6 +113,10 @@ class TxtMining(object):
         # remove words from self.docs
         self.docs = [filter(lambda word: word not in words, doc) for doc in self.docs]
 
+    def get_flat_terms(self):
+        return flatmap(self.docs)
+
+
 def get_docs_from_reuters_file(corpus):
     """
     splits different news items in one reuters sgm file into documents
@@ -138,7 +143,6 @@ def get_docs_from_reuters_file(corpus):
         # print
     return docs
 
-
 def retrieve_body(doc):
     """
     extracts textual body from an HTML document, i.e., get only what is between <title></title> and <body></body>
@@ -162,6 +166,14 @@ def retrieve_body(doc):
     body = extract_between_tags(doc, "BODY")
     # join them
     return "\n".join([title, body])
+
+def add_newline(line):
+    """
+    adds a newline character at the end of a string
+    :param line: string
+    :return: string terminated by \n
+    """
+    return line + "\n"
 
 
 if __name__ == '__main__':
@@ -220,10 +232,31 @@ if __name__ == '__main__':
         filename = os.environ.get('JOB_WORKHOME') + os.sep + "matrix.csv"
         txtmining.get_termdocument_matrix_as_csv(filename)
 
-        # now do word cloud
+        # now do word cloud, https://github.com/amueller/word_cloud
+        #  store flat terms in a file
 
+        word_cloud_file = open(os.environ.get('JOB_WORKHOME') + os.sep + "words.txt", "w")
+        word_cloud_file.writelines(map(add_newline, txtmining.get_flat_terms()))
+        word_cloud_file.close()
+        #  Read the whole text.
+        text = open(os.environ.get('JOB_WORKHOME') + os.sep + "words.txt").read()
 
+        # Generate a word cloud image
+        wordcloud = WordCloud().generate(text)
 
+        # Display the generated image:
+        # the matplotlib way:
+        import matplotlib.pyplot as plt
+
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis("off")
+
+        # lower max_font_size
+        wordcloud = WordCloud(max_font_size=40).generate(text)
+        plt.figure()
+        plt.imshow(wordcloud, interpolation="bilinear")
+        plt.axis("off")
+        plt.show()
 
         exit(0)
 

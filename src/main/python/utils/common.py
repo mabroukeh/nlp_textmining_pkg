@@ -11,6 +11,8 @@ import os
 import sys
 import warnings
 from datetime import datetime
+from itertools import chain
+
 
 import pandas as pd
 
@@ -160,3 +162,7 @@ def is_sorted(x, key=lambda x: x):
         bool
     """
     return all([key(x[i]) <= key(x[i + 1]) for i in xrange(len(x) - 1)])
+
+def flatmap(l):
+    return list(chain.from_iterable(l))
+
